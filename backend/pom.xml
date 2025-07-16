@@ -1,50 +1,63 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>com.kukuk</groupId>
-  <artifactId>app</artifactId>
-  <version>1.0.0</version>
-   <!-- Dependency Management für zentrale Versionsverwaltung -->
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <!-- BOM für Spring Boot: Vermeidet Versionskonflikte und sorgt für konsistente Updates -->
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.kukuk</groupId>
+    <artifactId>app</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <!-- Vererbung von Spring Boot Starter-Konfiguration -->
+    <parent>
         <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-dependencies</artifactId>
-        <version>3.2.0</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.0</version>             <!-- Spring Boot Version -->
+        <relativePath/>                     <!-- Verhindert lokale Pfadabhängigkeiten -->
+    </parent>
+
+    <!-- Abhängigkeiten: externe Bibliotheken, die dein Projekt nutzt -->
+    <dependencies>
+
+        <!-- Kernabhängigkeit für Spring Boot (Basisfunktionalität) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- JUnit 5 für Tests (nur zur Laufzeit im Testkontext geladen) -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
-  </dependencyManagement>
-  <dependencies>
-    <!-- Spring Boot Starter: Basisabhängigkeit für Spring Boot-Projekte -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter</artifactId>
-    </dependency>
-    <!-- JUnit 5: Umfasst API und Engine in einer einzigen Abhängigkeit -->
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <scope>test</scope> <!-- Nur für Testzwecke genutzt -->
-    </dependency>
-  </dependencies>
-  <!-- Definiert Maven-Profile für Entwicklungs- und Produktionsumgebung -->
-  <profiles>
-    <profile>
-      <id>dev</id>
-      <properties>
-        <!-- Aktiviert das Entwicklungsprofil in Spring Boot -->
-        <spring.profiles.active>dev</spring.profiles.active>
-      </properties>
-    </profile>
-    <profile>
-      <id>prod</id>
-      <properties>
-        <!-- Aktiviert das Produktionsprofil in Spring Boot -->
-        <spring.profiles.active>prod</spring.profiles.active>
-      </properties>
-    </profile>
-  </profiles>
+
+    <!-- Build-Konfiguration: Plugins für spezielle Aufgaben wie Spring Boot Run -->
+    <build>
+        <plugins>
+
+            <!-- Plugin für Spring Boot: ermöglicht mvn spring-boot:run -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <!-- Maven-Profile: ermöglichen Umgebungswechsel durch Parameter -->
+    <profiles>
+        <profile>
+            <id>dev</id> <!-- Entwicklungsprofil -->
+            <properties>
+                <spring.profiles.active>dev</spring.profiles.active>
+            </properties>
+        </profile>
+        <profile>
+            <id>prod</id> <!-- Produktionsprofil -->
+            <properties>
+                <spring.profiles.active>prod</spring.profiles.active>
+            </properties>
+        </profile>
+    </profiles>
 </project>

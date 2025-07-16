@@ -31,23 +31,18 @@ pipeline {
 
         stage('Build Backend') {
             steps {
-                sh "mvn clean package -P${params.MAVEN_PROFILE}"
-                // Baut das Backend mit gewähltem Maven-Profil.
+                dir('backend') {
+                    sh "mvn clean verify -P${params.MAVEN_PROFILE}"
+         // Baut das Backend mit gewähltem Maven-Profil und testet.
             }
         }
-
+     }
         stage('Build Frontend') {
             steps {
                 dir('frontend') {
                     sh 'npm install && npm run build'
                     // Baut das Frontend – im 'frontend'-Verzeichnis.
                 }
-            }
-        }
-
-        stage('Test Backend') {
-            steps {
-                sh 'mvn test'
             }
         }
 
