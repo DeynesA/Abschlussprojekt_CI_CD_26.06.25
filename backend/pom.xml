@@ -1,63 +1,49 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <groupId>com.kukuk</groupId>
-    <artifactId>app</artifactId>
-    <version>1.0.0</version>
-    <packaging>jar</packaging>
+  <modelVersion>4.0.0</modelVersion>
 
-    <!-- Vererbung von Spring Boot Starter-Konfiguration -->
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version>             <!-- Spring Boot Version -->
-        <relativePath/>                     <!-- Verhindert lokale Pfadabhängigkeiten -->
-    </parent>
+  <groupId>com.kukuk</groupId>
+  <artifactId>app</artifactId>
+  <version>1.0.0</version>
 
-    <!-- Abhängigkeiten: externe Bibliotheken, die dein Projekt nutzt -->
-    <dependencies>
+  <profiles>
+    <profile>
+      <id>dev</id>
+      <properties>
+        <spring.profiles.active>dev</spring.profiles.active>
+      </properties>
+    </profile>
+    <profile>
+      <id>prod</id>
+      <properties>
+        <spring.profiles.active>prod</spring.profiles.active>
+      </properties>
+    </profile>
+  </profiles>
 
-        <!-- Kernabhängigkeit für Spring Boot (Basisfunktionalität) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
+  <dependencies>
+  <dependency>
+    <groupId>org.junit.jupiter</groupId>
+    <artifactId>junit-jupiter</artifactId>
+    <version>5.9.3</version>
+    <scope>test</scope>
+  </dependency>
+</dependencies>
 
-        <!-- JUnit 5 für Tests (nur zur Laufzeit im Testkontext geladen) -->
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
 
-    </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.8.1</version> 
+        <configuration>
+          <source>11</source> 
+          <target>11</target>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
-    <!-- Build-Konfiguration: Plugins für spezielle Aufgaben wie Spring Boot Run -->
-    <build>
-        <plugins>
-
-            <!-- Plugin für Spring Boot: ermöglicht mvn spring-boot:run -->
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-
-        </plugins>
-    </build>
-
-    <!-- Maven-Profile: ermöglichen Umgebungswechsel durch Parameter -->
-    <profiles>
-        <profile>
-            <id>dev</id> <!-- Entwicklungsprofil -->
-            <properties>
-                <spring.profiles.active>dev</spring.profiles.active>
-            </properties>
-        </profile>
-        <profile>
-            <id>prod</id> <!-- Produktionsprofil -->
-            <properties>
-                <spring.profiles.active>prod</spring.profiles.active>
-            </properties>
-        </profile>
-    </profiles>
 </project>

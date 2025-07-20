@@ -1,104 +1,96 @@
 pipeline {
-    agent any
+  agent any  // Nutzt beliebigen Jenkins-Agent
 
-    // Auswahl der Umgebung: Entwicklung oder Produktion
-    parameters {
-        choice(
-            name: 'MAVEN_PROFILE',
-            choices: ['dev', 'prod'],
-            description: 'Wähle Maven-Profil (dev oder prod)'
-        )
+  parameters {
+    // Umgebung wird als Parameter übergeben (dev oder prod)
+    string(name: 'ENV', defaultValue: 'dev', description: 'Umgebung wählen')
+  }
+
+  environment {
+    // Registry und Bild-Tags vorbereiten
+    REGISTRY = "registrykurs1.azurecr.io"
+    TAG      = "${BUILD_NUMBER}-${params.ENV}"
+
+    // Docker-Image-Namen mit Umgebungstag
+    IMAGE_BACKEND  = "${REGISTRY}/arthur-backend:${TAG}"
+    IMAGE_FRONTEND = "${REGISTRY}/arthur-frontend:${TAG}"
+  }
+
+  stages {
+
+    stage('Checkout') {
+      steps {
+        // Hole aktuellen Code vom GitHub-Repo
+        git 'https://github.com/DeynesA/Abschlussprojekt_CI_CD_26.06.25.git'
+      }
     }
 
-    // Zentrale Projektkonstanten
-    environment {
-        REPO_URL       = 'https://github.com/DeynesA/Abschlussprojekt_CI_CD_26.06.25.git'   // Git-Quelle
-        DOCKER_IMAGE   = 'arthurs-ci-cd-pipeline'                                           // Bildname für Registry
-        REGISTRY_URL   = 'registrykurs.azurecr.io'                                          // Container-Registry
-        CREDENTIALS_ID = 'azure-container-registry-creds'                                   // Jenkins-Zugangsdaten (Credential-ID in Jenkins)
-        BUILD_TAG      = "${env.BUILD_ID}-${params.MAVEN_PROFILE}"                          // Versions-Tag
-        FULL_TAG       = "${REGISTRY_URL}/${DOCKER_IMAGE}:${BUILD_TAG}"                     // Vollständiges Docker-Image-Tag
+    stage('Build & Test Backend') {
+      steps {
+        dir('backend') {
+          // Maven-Profil dev/prod aktivieren, Tests sind im "verify" enthalten
+          sh "mvn clean package -P${params.ENV}"
+        }
+      }
     }
 
-    stages {
+    stage('Build & Test Frontend') {
+      steps {
+        dir('frontend') {
+          // Installiere Pakete & baue Frontend
+          sh "npm install && npm run build"
 
-        stage('Code Checkout') {
-            steps {
-                git branch: 'main', url: env.REPO_URL
-                // Holt den Code aus dem GitHub-Repository.
+          // Nur in prod sind Tests Pflicht
+          script {
+            if (params.ENV == 'prod') {
+              sh "npm test"
+            } else {
+              sh "npm test || echo 'Frontend-Tests in DEV dürfen fehlschlagen'"
             }
+          }
         }
-
-        stage('Build Backend') {
-            steps {
-                dir('backend') {
-                    sh "mvn clean verify -P${params.MAVEN_PROFILE}"
-         // Baut das Backend mit gewähltem Maven-Profil und testet.
-            }
-        }
-     }
-        stage('Build Frontend') {
-            steps {
-                dir('frontend') {
-                    sh 'npm install && npm run build'
-                    // Baut das Frontend – im 'frontend'-Verzeichnis.
-                }
-            }
-        }
-
-        stage('Test Frontend') {
-            steps {
-                dir('frontend') {
-                    // Prod → Tests müssen erfolgreich sein. Dev → Fehler sind erlaubt.
-                    script {
-                        if (params.MAVEN_PROFILE == 'prod') {
-                            sh 'npm test'
-                        } else {
-                            sh 'npm test || echo "Frontend-Tests fehlgeschlagen (Dev-Modus)"'
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Docker Build & Push') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: env.CREDENTIALS_ID,
-                    usernameVariable: 'USER',
-                    passwordVariable: 'PASS'
-                )]) {
-                    sh "echo ${PASS} | docker login ${REGISTRY_URL} -u ${USER} --password-stdin"
-                    sh "docker build -t ${FULL_TAG} ."
-                    sh "docker push ${FULL_TAG}"
-                    sh "docker logout ${REGISTRY_URL}"
-                    // Docker-Image bauen, pushen, und sauber abmelden.
-                }
-            }
-        }
-
-        stage('Deployment') {
-            steps {
-                script {
-                    def target = (params.MAVEN_PROFILE == 'prod') ? 'prod.yaml' : 'dev.yaml'
-                    sh "kubectl apply -f ./k8s/${target}"
-                    // Wählt automatisch die passende YAML je nach Umgebung.
-                }
-            }
-        }
+      }
     }
 
-    post {
-        always {
-            echo "Der Arbeitsbereich wird bereinigt"
-            sh "rm -rf ./*"
-            // Bereinigt den Arbeitsbereich nach Abschluss der Pipeline.
+    stage('Docker Build & Push') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'azure-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            // Docker-Login + Image-Build & Push
+            sh "echo $PASS | docker login $REGISTRY -u $USER --password-stdin"
+            sh "docker build -t ${REGISTRY_URL}/${IMAGE_BACKEND}:${params.BUILD_ENV} ./backend"
+            sh "docker build -t ${REGISTRY_URL}/${IMAGE_FRONTEND}:${params.BUILD_ENV} ./frontend"
+            sh "docker push ${REGISTRY_URL}/${IMAGE_BACKEND}:${params.BUILD_ENV}"
+            sh "docker push ${REGISTRY_URL}/${IMAGE_FRONTEND}:${params.BUILD_ENV}"
         }
-        success {
-            echo "Pipeline erfolgreich abgeschlossen für ${params.MAVEN_PROFILE}"
-        }
-        failure {
-            echo "Die Pipeline ist fehlgeschlagen bitte Logs prüfen"
-        }
+      }
     }
+
+    stage('Deploy to Kubernete') {
+      when { expression { params.ENV == 'prod' } }
+      steps {
+        // Warte auf manuelle Freigabe vor Deployment nach PROD
+        input message: "Produktionsdeployment freigeben?"
+            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                withCredentials([file(credentialsId: "kubeconfig-${params.ENV}", variable: 'KUBECONFIG')]) {
+                // Wähle passende YAML je nach Umgebung
+                    sh "kubectl apply -f k8s/${params.ENV}.yaml"
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      // Bereinige Workspace am Ende
+      echo "🧹 Bereinige Jenkins-Arbeitsverzeichnis..."
+      sh "rm -rf backend frontend"
+    }
+    success {
+      echo "Pipeline erfolgreich abgeschlossen für ${params.ENV}"
+    }
+    failure {
+      echo "Pipeline fehlgeschlagen – bitte Logs prüfen"
+    }
+  }
 }

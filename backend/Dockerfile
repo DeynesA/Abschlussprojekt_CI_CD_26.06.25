@@ -1,4 +1,6 @@
-FROM bellsoft/liberica-runtime-container:17-alpine
+# backend/Dockerfile
+FROM eclipse-temurin:11-jre-slim
 WORKDIR /app
 COPY target/*.jar app.jar
-CMD ["java", "-jar", "app.jar"]
+EXPOSE 8080
+ENTRYPOINT ["java","-jar","app.jar"]
