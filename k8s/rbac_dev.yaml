@@ -1,19 +1,18 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: muhammed-sa
-  namespace: muhammed-dev
-
+  name: arthur-sa
+  namespace: arthur-dev
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: muhammed-rb
-  namespace: muhammed-dev
+  name: arthur-rb
+  namespace: arthur-dev
 subjects:
   - kind: ServiceAccount
-    name: muhammed-sa
-    namespace: muhammed-dev
+    name: arthur-sa
+    namespace: arthur-dev
 roleRef:
   kind: ClusterRole
   name: edit
